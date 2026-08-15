@@ -1,0 +1,197 @@
+---
+title: "reg_asso_plots"
+output: html_document
+date: "2025-09-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(ggrepel)
+library(locuszoomr)
+library(EnsDb.Hsapiens.v86)
+source("./20250508_locus_ggplot_source.R")
+source("./20250508_ggscatter_source.R")
+source("./20251104_gene_colours_source.R")
+source("./20251104_genetracks_grob_source.R")
+source("./20251104_gg_genetracks_source.R")
+```
+
+```{r}
+create_RegAsso_dataframe <- function(chr, batch, group, metab){
+  snpinfo <- readRDS(paste0("/Volumes/Sofer Lab/HCHS_SOL/Projects/2023_local_ancestry_comparison_sol/Data/FLARE3/FLARE3_SNPs_filtered_chr", chr,".rds"))
+  res <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_no_genotype.RDS"))
+  print(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_no_genotype.RDS"))
+  
+  res$Score.pval <- as.numeric(res$Score.pval)
+  df <- cbind(rep(chr, nrow(res)), res$snppos,
+              snpinfo$rsID[snpinfo$snppos == res$snppos], res$Score.pval,
+              res$Est)
+  colnames(df) <- c("chrom", "pos", "rsID",
+                    "p", "Effect_size")
+  df <- as.data.frame(df)
+  df$p <- as.numeric(df$p)
+  df$pos <- as.numeric(df$pos)
+  df$chrom <- as.numeric(df$chrom)
+  return(df)
+}
+```
+
+
+```{r}
+create_RegAssoPlot <- function(df, known_loci,
+                               hightlight_genes = NULL,
+                               fig_title = "", ylim_max = 20,
+                               xlabel = 0.6,
+                               ylabel = 0.9,
+                               flanking_l = 500000,
+                               flanking_r = 500000){
+  
+  df$pos <- as.integer(df$pos)
+  rownames(df) <- df$rsID
+  
+  rsid <- c(rownames(df)[which(df$p == min(df$p))[1]])
+  
+  custom_label <- data.frame(
+  x = xlabel,               
+  y = ylabel,                 
+  label = rsid   
+  )
+
+  loc <- locus(df, ens_db = "EnsDb.Hsapiens.v86",
+      chrom = "chrom",
+      pos = "pos", 
+      p = "p",
+      labs = "rsID",
+      flank = c(flanking_l, flanking_r),
+      index_snp = rsid)
+
+  print(loc)
+  loc <- link_recomb(loc, genome = loc$genome, table = NULL, recomb = NULL)
+
+locus_ggplot(loc, known_loci, 
+               scheme = c('grey', 'dodgerblue', 'red'),
+               highlight = hightlight_genes,
+               highlight_col = "orange",
+               pcutoff = 2.58 * 10^(-6),
+               ylim = c(0, ylim_max)
+               ) +
+    geom_text_repel(data = custom_label, aes(x = x, y = y, label = label), 
+                    size = 3, 
+                    color = "black",
+                    nudge_x = 0.005,
+                    nudge_y = 0) +
+    
+    labs(title = fig_title) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 12, face = "bold")
+    )
+
+}
+```
+
+```{r}
+regasso_df_chr2 <- create_RegAsso_dataframe(2, "b1", "neg_controls", "x100001721")
+known_loci_chr2 <- as.data.frame(readRDS("../Data/STAAR_neg_controls/x100001721/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr2, as.data.frame(known_loci_chr2), 
+                   hightlight_genes = c("STAMBP", "AUP1", "CYP26B1", "ALMS1", 
+                                        "NAT8", "AUP1", "EGR4"), ylim_max = 20,
+                   xlabel = 0.5,
+                  flanking_l = 1800000, flanking_r = 1000000)
+```
+
+```{r}
+regasso_df_chr2 <- create_RegAsso_dataframe(2, "b1", "exp_groups", "x100001266")
+known_loci_chr2 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x100001266/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr2, as.data.frame(known_loci_chr2), 
+                   hightlight_genes = c("DUSP11"), ylim_max = 25,
+                  xlabel = 0.52,
+                  flanking_l = 500000, flanking_r = 500000)
+```
+```{r}
+regasso_df_chr5 <- create_RegAsso_dataframe(5, "b1", "exp_groups", "x1114")
+known_loci_chr5 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x1114/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr5, as.data.frame(known_loci_chr5), 
+                   hightlight_genes = c("AGXT2"), ylim_max = 35,
+                  xlabel = 0.51, ylabel = 0.93,
+                  flanking_l = 500000, flanking_r = 500000)
+```
+```{r}
+regasso_df_chr8 <- create_RegAsso_dataframe(8, "b1", "exp_groups", "x1021")
+known_loci_chr8 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x1021/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr8, as.data.frame(known_loci_chr8), 
+                   hightlight_genes = c("OPLAH"), ylim_max = 25, ylab = 0.95,
+                  flanking_l = 2000000)
+```
+
+
+```{r}
+regasso_df_chr11 <- create_RegAsso_dataframe(11, "b1", "exp_groups", "x100009332")
+known_loci_chr11 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x100009332/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr11, as.data.frame(known_loci_chr11), 
+                   hightlight_genes = c("MS4A14"),
+                  flanking_l = 2000000, flanking_r = 2000000, ylim_max = 35,
+                  xlabel = 0.5, ylabel = 0.92)
+```
+```{r}
+regasso_df_chr11 <- create_RegAsso_dataframe(11, "b1", "exp_groups", "x100009332")
+known_loci_chr11 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x100009332/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr11, as.data.frame(known_loci_chr11), 
+                   hightlight_genes = c("MS4A14"), ylim_max = 30,
+                  flanking_l = 2000000, flanking_r = 3500000)
+```
+
+```{r}
+regasso_df_chr11_3beta <- create_RegAsso_dataframe(11, "b1", "exp_groups", "x100006370")
+known_loci_chr11_3beta <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x100006370/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr11_3beta, as.data.frame(known_loci_chr11_3beta), 
+                  flanking_l = 2500000, flanking_r = 1000000, ylim_max = 40)
+```
+
+
+```{r}
+regasso_df_chr12_1methyl <- create_RegAsso_dataframe(12, "b1", "exp_groups", "x100001208")
+known_loci_chr12_1methyl <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x100001208/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr12_1methyl, as.data.frame(known_loci_chr12_1methyl), 
+                  flanking_l = 1000000, flanking_r = 500000, ylim_max = 35,
+                  hightlight_genes = c("SLC6A13"), xlabel = 0.38,
+                  ylabel = 0.91)
+```
+
+
+```{r}
+regasso_df_chr12_ethylmalonate <- create_RegAsso_dataframe(12, "b1", "exp_groups", "x2054")
+known_loci_chr12_ethylmalonate <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x2054/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr12_ethylmalonate, as.data.frame(known_loci_chr12_ethylmalonate), 
+                  flanking_l = 500000, flanking_r = 190000, ylim_max = 20,
+                  hightlight_genes= "ACADS")
+```
+
+```{r}
+regasso_df_chr16 <- create_RegAsso_dataframe(16, "b1", "exp_groups", "x100006264")
+known_loci_chr16 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x100006264/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr16, as.data.frame(known_loci_chr16), 
+                  flanking_l = 1800000, flanking_r = 3200000, ylim_max = 40,
+                  hightlight_genes= c("FAM57B", "FUS", "IL4R", "ITGAL",
+                  "KDM8", "MVP", "NUPR1", "PRRT2", "RNF40"), xlabel = 0.33,
+                  ylabe= 0.91)
+```
+
+
+```{r}
+regasso_df_chr16_1224 <- create_RegAsso_dataframe(16, "b1", "exp_groups", "x1224")
+known_loci_chr16_1224 <- as.data.frame(readRDS("../Data/STAAR_exp_groups/x1224/individual_cond_pruned_var.RDS"))
+create_RegAssoPlot(regasso_df_chr16_1224, as.data.frame(known_loci_chr16_1224), 
+                  flanking_l = 2000000, flanking_r = 150000, ylim_max = 40,
+                  hightlight_genes= c("DPEP1"), xlabel = 0.8,
+                  ylabe= 0.91)
+```
+
+
+
+

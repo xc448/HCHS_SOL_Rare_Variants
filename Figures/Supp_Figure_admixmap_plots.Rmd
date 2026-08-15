@@ -1,0 +1,548 @@
+---
+title: "20250428_admixmap_plots"
+output: html_document
+date: "2025-04-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(gridExtra)
+library(tidyverse)
+library(reshape2)
+library(lattice)
+library(grid)
+library(gridExtra)
+library(gridtext)
+```
+
+**Define a function that overlaps the admixture mapping result from specified ancestry, batch, and chromosome --- no genotype vs. adjusting GWAS pruned common variants**
+```{r}
+plot_overlay_pval <- function(metab, batch, group, chr, start, end){
+  # Load the no genotype results 
+  sig_thresh <- 2.58 * 10^(-6)
+  res_no_genotype <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_no_genotype.RDS"))
+  res_no_genotype <- res_no_genotype |> 
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+
+  # load cv adjusted results
+  if(group == "neg_controls"){
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_cv_gwas.RDS"))
+  }else{
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab,
+                                    "_cv_adj.RDS"))
+  }
+  
+  res_cv_adjusted <- res_cv_adjusted |>
+      mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  # Start plotting
+  # determine colors based on the ancestry given in the argument
+  colors <- c("No genotype adjusted" = "aquamarine3", "Common variants adjusted" = "salmon")
+  legend_name <- "AM Models"
+  chrnum <- paste0("chr", chr)
+  if(batch == "b1"){
+    overlay_plot <- res_no_genotype |> 
+    ggplot(aes(x = snppos, y = -log(Score.pval, 10),col = "No genotype adjusted")) +
+    geom_point(size = 0.6, alpha = 0.3) + 
+    geom_point(data = res_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                               col = "Common variants adjusted"), 
+               size = 0.6, alpha = 0.3) +
+    geom_hline(yintercept = -log10(2.58 * 10^(-6)), linetype = "dashed", color = "black") + 
+    labs(x = "") +
+    scale_color_manual(values = colors,
+                       name = legend_name) +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5),
+          legend.position = "top") +
+    guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) 
+  }
+  else{
+    print(res_no_genotype[res_no_genotype$Score.pval == min(res_no_genotype$Score.pval),])
+    print(res_cv_adjusted[res_cv_adjusted$Score.pval == min(res_cv_adjusted$Score.pval),])
+    overlay_plot <- res_no_genotype |> 
+    ggplot(aes(x = snppos, y = -log(Score.pval, 10),col = "No genotype adjusted")) +
+    geom_point(size = 0.6, alpha = 0.3) + 
+    geom_point(data = res_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                               col = "Common variants adjusted"), 
+               size = 0.6, alpha = 0.3) +
+    labs(x = "") +
+    scale_color_manual(values = colors,
+                       name = legend_name) +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5),
+          legend.position = "top") +
+    guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) 
+  }
+  return(overlay_plot)
+}
+```
+**Use this function below to combine plots from different ancestries (African and Amerindian) and the two batches**
+```{r}
+# Combine batch 1 and batch 2 for both ancestries in an Miami plot
+combine_plots  <- function(g_b1, g_b2, title){
+  g_b1 <- g_b1 + 
+    theme(plot.margin = unit(c(0, 0.2, -2, 0.2), "lines"))
+  
+  g_b2 <- g_b2 + 
+    theme(axis.text.x =element_blank(),
+          plot.margin = unit(c(1, 0.2, 0, 0.2), "lines")) +
+    theme(legend.position = "none")+
+    scale_y_reverse()
+  
+  # append the plots all together 
+  grid.newpage()
+  pushViewport(viewport(layout = grid.layout(2, 1, heights = unit(c(1.5, 8.5), "null"))))
+  
+  # Add the title
+  grid.text(title, y = unit(1, "npc") - unit(1.5, "lines"), 
+            gp = gpar(fontsize = 12, fontface = "bold"))
+  
+  # Add the combined plot
+  pushViewport(viewport(layout.pos.row = 2, layout.pos.col = 1))
+  grid.draw(rbind(ggplotGrob(g_b1),  ggplotGrob(g_b2)))
+}
+```
+
+
+```{r}
+combine_plots(plot_overlay_pval("x100001721", "b1", "neg_controls", 2, 
+                                start = 71934335, end = 74868682), 
+              plot_overlay_pval("x100001721", "b2", "neg_controls", 2,
+                                start = 71934335, end = 74868682),
+              "N2-acetyllysine - Chr2 - African Ancestry")
+```
+
+```{r}
+combine_plots(plot_overlay_pval("x799", "b1", "neg_controls", 5, 
+                                start = 78778375, end = 79374979), 
+              plot_overlay_pval("x799", "b2", "neg_controls", 5,
+                                start = 78778375, end = 79374979),
+              "Betaine - Chr5 - African Ancestry")
+```
+
+
+```{r}
+combine_plots(plot_overlay_pval("x1215", "b1", "neg_controls", 6, 
+                                start = 167190769, end = 167300620), 
+              plot_overlay_pval("x1215", "b2", "neg_controls", 6,
+                                start = 167190769, end = 167300620),
+              "N-acetylglucosaminylasparagine - Chr6 - Amerindian Ancestry")
+```
+
+```{r}
+combine_plots(plot_overlay_pval("x278", "b1", "neg_controls", 16, 
+                                start = 87530462, end = 90083514), 
+              plot_overlay_pval("x278", "b2", "neg_controls", 16,
+                                start = 87530462, end = 90083514),
+              "Cysteinylglycine - Chr16 - Amerindian Ancestry")
+```
+
+
+```{r}
+combine_plots(plot_overlay_pval("x1021", "b1", "exp_groups", 8, 
+                                start = 141782700, end = 144007080), 
+              plot_overlay_pval("x1021", "b2", "exp_groups", 8,
+                                start = 141782700, end = 144007080),
+              "5-oxoproline - Chr8 - African Ancestry")
+```
+
+```{r}
+combine_plots(plot_overlay_pval("x100000007", "b1", "exp_groups", 10, 
+                                start = 59301068, end = 61869652), 
+              plot_overlay_pval("x100000007", "b2", "exp_groups", 10,
+                                start = 59301068, end = 61869652),
+              "Carnitine - Chr10 - Amerindian Ancestry")
+```
+```{r}
+combine_plots(plot_overlay_pval("x100004046", "b1", "exp_groups", 13, 
+                                start = 95131902, end = 96203528), 
+              plot_overlay_pval("x100004046", "b2", "exp_groups", 13,
+                                start = 95131902, end = 96203528),
+              "N-acetylcarnosine - Chr13 - African Ancestry")
+
+```
+```{r}
+combine_plots(plot_overlay_pval("x1224", "b1", "exp_groups", 16, 
+                                start = 87530462, end = 90083514), 
+              plot_overlay_pval("x1224", "b2", "exp_groups", 16,
+                                start = 87530462, end = 90083514),
+              "Cys-gly, oxidized - Chr16 - Amerindian Ancestry")
+```
+
+```{r}
+plot_overlay_rare_variant <- function(metab, batch = "b1", group, chr, start, end,
+                                      rv_name, title){
+  # Load the no genotype results 
+  sig_thresh <- 2.58 * 10^(-6)
+  res_no_genotype <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_no_genotype.RDS"))
+  res_no_genotype <- res_no_genotype |> 
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+
+  # load cv adjusted results
+  if(group == "neg_controls"){
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_cv_gwas.RDS"))
+  }else{
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_cv_adj.RDS"))
+  }
+  
+  res_cv_adjusted <- res_cv_adjusted |>
+      mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  res_rv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, "_", rv_name,
+                                    "_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  res_rv_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, "_", rv_name,
+                                    "_cv_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  # Start plotting
+  # determine colors based on the ancestry given in the argument
+  colors <- c("No genotype adjusted" = "aquamarine3", "Common variants adjusted" = "salmon",
+              "Rare variant set adjusted" = "royalblue2",
+              "Rare + common variants adjusted" = "mediumpurple2" )
+  #legend_name <- "AM Models"
+  chrnum <- paste0("chr", chr)
+  
+  overlay_plot <- res_no_genotype |> 
+  ggplot(aes(x = snppos, y = -log(Score.pval, 10),col = "No genotype adjusted")) +
+  geom_point(size = 0.6, alpha = 0.1) + 
+  geom_point(data = res_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Common variants adjusted"), 
+             size = 0.6, alpha = 0.1) +
+  geom_point(data = res_rv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Rare variant set adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  geom_point(data = res_rv_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Rare + common variants adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  geom_hline(yintercept = -log10(2.58 * 10^(-6)), linetype = "dashed", color = "black") + 
+  labs(x = "", y = "-log10(p-value)", title = title) +
+  scale_color_manual(values = colors,
+                     name = "") +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.text = element_text(size = 8),
+    plot.margin = margin(t = 10, r = 20, b = 10, l = 10)
+  ) +
+  guides(color = guide_legend(nrow = 1, override.aes = list(size = 3, alpha = 1)))
+  return(overlay_plot)
+}
+```
+
+```{r}
+p <- plot_overlay_rare_variant("x1215", "b1", "neg_controls", 6, 
+                                start = 167190769, end = 167300620,
+                                rv_name = "utr", title = "N-acetylglucosaminylasparagine - Chr6 - Amerindian Ancestry")
+p
+```
+
+```{r}
+p <- plot_overlay_rare_variant("x1021", "b1", "exp_groups", 8, 
+                                start = 141782700, end = 144007080,
+                                rv_name = "ncRNA", title = "5-oxoproline - Chr8 - African Ancestry")
+p
+```
+
+
+```{r}
+res_no_genotype <- readRDS(paste0("../Data/STAAR_", "exp_groups", "/", "x1021",
+                                    "/admixmap_", "b1", "_",  "x1021", 
+                                    "_no_genotype.RDS"))
+res_no_genotype <- res_no_genotype |> 
+  mutate(snppos = as.numeric(snppos)) |> 
+  filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+res_rv_adjusted <- readRDS(paste0("../Data/STAAR_", "exp_groups", "/", "x1021",
+                                    "/admixmap_", "b1", "_",  "x1021", "_", "ncRNA",
+                                    "_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  
+wilcox.test(res_no_genotype$Score.pval, res_rv_adjusted$Score.pval)
+
+t.test(res_no_genotype$Score.pval, res_rv_adjusted$Score.pval)
+
+```
+
+
+```{r}
+p <- plot_overlay_rare_variant("x1224", "b1", "exp_groups", 16, 
+                                start = 87530462, end = 90083514,
+                                rv_name = "plof_ds", title = "Cys-gly, oxidized - Chr16 - Amerindian Ancestry")
+p
+```
+```{r}
+p <- plot_overlay_rare_variant("x1224", "b1", "exp_groups", 16, 
+                                start = 87530462, end = 90083514,
+                                rv_name = "rv_combined", title = "Cys-gly, oxidized - Chr16 - Amerindian Ancestry")
+p
+```
+
+```{r}
+p <- plot_overlay_pval("x1224", "b1", "exp_groups", 16, 
+                                start = 87530462, end = 90083514)
+p
+```
+
+
+```{r}
+res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", "exp_groups", "/", "x1224",
+                                    "/admixmap_", batch, "_",  "x1224",
+                                    "_cv_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6) 
+
+res_cv_adjusted$chr <- rep(16, nrow(res_cv_adjusted))
+
+write.table(res_cv_adjusted, file = "../Data/STAAR_exp_groups/x1224/RegionalAsso_input.txt",quote = FALSE,
+            row.names = FALSE, col.names =  TRUE, sep = "\t")
+
+```
+
+```{r}
+res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", "exp_groups", "/", "x1224",
+                                    "/admixmap_", batch, "_",  "x1224",
+                                    "_cv_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6) 
+
+res_cv_adjusted$chr <- rep(16, nrow(res_cv_adjusted))
+
+```
+
+```{r}
+p <- plot_overlay_pval("x1224", "b1", "exp_groups", 16, 
+                                start = 87530462, end = 90083514)
+p
+```
+
+```{r}
+plot_overlay_rare_variant <- function(metab, batch = "b1", group, chr, start, end,
+                                      rv_name, title){
+  # Load the no genotype results 
+  sig_thresh <- 2.58 * 10^(-6)
+  res_no_genotype <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_no_genotype.RDS"))
+  res_no_genotype <- res_no_genotype |> 
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+
+  # load cv adjusted results
+  if(group == "neg_controls"){
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_cv_gwas.RDS"))
+  }else{
+    # res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+    #                                 "/admixmap_", batch, "_",  metab, 
+    #                                 "_cv_adj.RDS"))
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                "/admixmap_", batch, "_",  metab, 
+                                "_cv_nominal_samedir_adj.RDS"))
+  }
+  
+  res_cv_adjusted <- res_cv_adjusted |>
+      mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  res_rv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, "_", rv_name,
+                                    "_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  res_rv_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, "_", rv_name,
+                                    "_cv_samedir_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  
+  print(min(res_rv_cv_adjusted$Score.pval))
+  
+  
+  
+  # res_cv_samedir_adjusted <-  readRDS(paste0("../Data/STAAR_", group, "/", metab,
+  #                                   "/admixmap_", batch, "_",  metab,
+  #                                   "_cv_samedir_adj.RDS")) |>
+  #   mutate(snppos = as.numeric(snppos)) |> 
+  #   filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  #print(min(res_cv_samedir_adjusted$Score.pval))
+  
+  # Start plotting
+  # determine colors based on the ancestry given in the argument
+  colors <- c("No genotype adjusted" = "aquamarine3", "All common variants adjusted" = "salmon",
+              #"Common variants same direction adjusted" = "cornsilk2",
+              "Rare variant set adjusted" = "royalblue2",
+              "Rare + common variants adjusted" = "mediumpurple2"
+              )
+  #legend_name <- "AM Models"
+  chrnum <- paste0("chr", chr)
+  
+  overlay_plot <- res_no_genotype |> 
+  ggplot(aes(x = snppos, y = -log(Score.pval, 10),col = "No genotype adjusted")) +
+  geom_point(size = 0.6, alpha = 0.1) + 
+  geom_point(data = res_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "All common variants adjusted"), 
+             size = 0.6, alpha = 0.1) +
+  
+  geom_point(data = res_rv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Rare variant set adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  geom_point(data = res_rv_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Rare + common variants adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  # geom_point(data = res_cv_samedir_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+  #                            col = "Common variants same direction adjusted"), 
+  #            size = 0.6, alpha = 0.1) +  
+  geom_hline(yintercept = -log10(2.58 * 10^(-6)), linetype = "dashed", color = "black") + 
+  labs(x = "", y = "-log10(p-value)", title = title) +
+  scale_color_manual(values = colors,
+                     name = "") +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.text = element_text(size = 8),
+    plot.margin = margin(t = 10, r = 20, b = 10, l = 10)
+  ) +
+  guides(color = guide_legend(nrow = 2, override.aes = list(size = 3, alpha = 1)))
+  return(overlay_plot)
+}
+
+
+p <- plot_overlay_rare_variant("x1224", "b1", "exp_groups", 16, 
+                                start = 87530462, end = 90083514,
+                                rv_name = "plof_ds", title = "Chr16 - Amerindian Ancestry")
+p
+```
+
+
+
+
+```{r}
+plot_overlay_rare_variant <- function(metab, batch = "b1", group, chr, start, end,
+                                      rv_name, title){
+  # Load the no genotype results 
+  sig_thresh <- 2.58 * 10^(-6)
+  res_no_genotype <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_no_genotype.RDS"))
+  res_no_genotype <- res_no_genotype |> 
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+
+  # load cv adjusted results
+  if(group == "neg_controls"){
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_cv_gwas.RDS"))
+  }else{
+    res_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, 
+                                    "_cv_adj.RDS"))
+  }
+  
+  res_cv_adjusted <- res_cv_adjusted |>
+      mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  res_rv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, "_", rv_name,
+                                    "_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  res_rv_cv_adjusted <- readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab, "_", rv_name,
+                                    "_cv_adj_samedir.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  print(min(res_rv_cv_adjusted$Score.pval))
+  
+  res_cv_samedir_adjusted <-  readRDS(paste0("../Data/STAAR_", group, "/", metab,
+                                    "/admixmap_", batch, "_",  metab,
+                                    "_cv_samedir_adj.RDS")) |>
+    mutate(snppos = as.numeric(snppos)) |> 
+    filter(snppos >= start - 2.5e6 & snppos < end + 2.5e6)
+  
+  print(min(res_cv_samedir_adjusted$Score.pval))
+  
+  # Start plotting
+  # determine colors based on the ancestry given in the argument
+  colors <- c("No genotype adjusted" = "aquamarine3", "All common variants adjusted" = "salmon",
+              "Common variants same direction adjusted" = "cornsilk2",
+              "Rare variant set adjusted" = "royalblue2",
+              "Rare + common variants adjusted" = "mediumpurple2"
+              )
+  #legend_name <- "AM Models"
+  chrnum <- paste0("chr", chr)
+  
+  overlay_plot <- res_no_genotype |> 
+  ggplot(aes(x = snppos, y = -log(Score.pval, 10),col = "No genotype adjusted")) +
+  geom_point(size = 0.6, alpha = 0.1) + 
+  geom_point(data = res_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "All common variants adjusted"), 
+             size = 0.6, alpha = 0.1) +
+  
+  geom_point(data = res_rv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Rare variant set adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  geom_point(data = res_rv_cv_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Rare + common variants adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  geom_point(data = res_cv_samedir_adjusted, aes(x = snppos, y =  -log(Score.pval, 10), 
+                             col = "Common variants same direction adjusted"), 
+             size = 0.6, alpha = 0.1) +  
+  geom_hline(yintercept = -log10(2.58 * 10^(-6)), linetype = "dashed", color = "black") + 
+  labs(x = "", y = "-log10(p-value)", title = title) +
+  scale_color_manual(values = colors,
+                     name = "") +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.text = element_text(size = 8),
+    plot.margin = margin(t = 10, r = 20, b = 10, l = 10)
+  ) +
+  guides(color = guide_legend(nrow = 2, override.aes = list(size = 3, alpha = 1)))
+  return(overlay_plot)
+}
+
+
+p <- plot_overlay_rare_variant("x1021", "b1", "exp_groups", 8, 
+                                start = 141782700, end = 144007080,
+                                rv_name = "ncRNA", title = "5-oxoproline - Chr8 - African Ancestry")
+p
+```
+
