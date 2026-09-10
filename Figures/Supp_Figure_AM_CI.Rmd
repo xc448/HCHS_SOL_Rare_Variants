@@ -1,0 +1,213 @@
+---
+title: "Supp_Figure_SE"
+output: html_document
+date: "2026-09-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(gridExtra)
+library(tidyverse)
+library(reshape2)
+library(lattice)
+library(grid)
+library(gridExtra)
+library(gridtext)
+library(forcats)
+```
+
+```{r}
+# load data for AM results
+# Negative control - x100001721 chr2
+am_null_adj_x100001721 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001721_no_genotype.RDS")
+am_cv_adj_x100001721 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001721_cv_adj.RDS")
+am_rv_adj_x100001721 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001721_rv_adj.RDS")
+am_rv_cv_adj_x100001721 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001721_rv_cv_adj.RDS")
+
+# Negative control - x799 chr5
+am_null_adj_x799 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x799_no_genotype.RDS")
+am_cv_adj_x799 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x799_cv_adj.RDS")
+
+# Negative control - x1215 chr6
+am_null_adj_x1215 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1215_no_genotype.RDS")
+am_cv_adj_x1215 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1215_cv_adj.RDS")
+
+# Negative control - x278 chr16
+am_null_adj_x278 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x278_no_genotype.RDS")
+am_cv_adj_x278 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x278_cv_adj.RDS")
+
+# Test region -- chr8 x1021
+am_null_adj_x1021 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1021_no_genotype.RDS")
+am_cv_adj_x1021 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1021_cv_adj.RDS")
+am_rv_adj_x1021 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1021_rv_adj.RDS")
+am_rv_cv_adj_x1021 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1021_rv_cv_adj.RDS")
+
+# Test region -- chr10 x100000007
+am_null_adj_x100000007 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100000007_no_genotype.RDS")
+am_cv_adj_x100000007 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100000007_cv_adj.RDS")
+
+# Test region -- chr 13 x100004046
+am_null_adj_x100004046 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100004046_no_genotype.RDS")
+am_cv_adj_x100004046 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100004046_cv_adj.RDS")
+
+# Test region -- chr 16 - x1224
+am_null_adj_x1224 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1224_no_genotype.RDS")
+am_cv_adj_x1224 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1224_cv_adj.RDS")
+am_rv_adj_x1224 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1224_rv_adj.RDS")
+am_rv_cv_adj_x1224 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1224_rv_cv_adj.RDS")
+
+
+# Test region -- chr11 arachido,  x100009332
+am_null_adj_x100009332 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100009332_no_genotype.RDS")
+am_cv_adj_x100009332 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100009332_cv_adj.RDS")
+am_rv_adj_x100009332 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100009332_rv_adj.RDS")
+am_rv_cv_adj_x100009332 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100009332_rv_cv_adj.RDS")
+
+
+# Test region -- chr11 3beta,  x100006370
+am_null_adj_x100006370 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100006370_no_genotype.RDS")
+am_cv_adj_x100006370 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100006370_cv_adj.RDS")
+
+# Test region -- chr12 1_methyl, x100001208
+am_null_adj_x100001208 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001208_no_genotype.RDS")
+am_cv_adj_x100001208 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001208_cv_adj.RDS")
+am_rv_adj_x100001208 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001208_rv_adj.RDS")
+am_rv_cv_adj_x100001208 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001208_rv_cv_adj.RDS")
+
+
+# Test region -- chr12 1_ethylmalonate, x2054
+am_null_adj_x2054 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x2054_no_genotype.RDS")
+am_cv_adj_x2054 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x2054_cv_adj.RDS")
+am_rv_adj_x2054 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x2054_rv_adj.RDS")
+am_rv_cv_adj_x2054 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x2054_rv_cv_adj.RDS")
+
+
+
+# Test region -- chr16 x100006264
+am_null_adj_x100006264 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100006264_no_genotype.RDS")
+am_cv_adj_x100006264 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100006264_cv_adj.RDS")
+am_rv_adj_x100006264 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100006264_rv_adj.RDS")
+am_rv_cv_adj_x100006264 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100006264_rv_cv_adj.RDS")
+
+
+# Test region -- chr2 x100001266
+am_null_adj_x100001266 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001266_no_genotype.RDS")
+am_cv_adj_x100001266 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001266_cv_adj.RDS")
+am_rv_adj_x100001266 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001266_rv_adj.RDS")
+am_rv_cv_adj_x100001266 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x100001266_rv_cv_adj.RDS")
+
+
+# Test region -- chr5 x1114
+am_null_adj_x1114 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1114_no_genotype.RDS")
+am_cv_adj_x1114 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1114_cv_adj.RDS")
+am_rv_adj_x1114 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1114_plof_ds_adj.RDS")
+am_rv_cv_adj_x1114 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x1114_rv_cv_adj.RDS")
+
+
+# Test region -- chr8 x192
+am_null_adj_x192 <- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x192_no_genotype.RDS")
+am_cv_adj_x192<- readRDS("../../Admixmap_assoc_for_figure/admixmap_b1_x192_cv_adj.RDS")
+
+```
+
+
+```{r}
+region_meta <- tribble(
+  ~metabolite,    ~chr,  ~type,      ~pretty,  ~ancestry,
+  # negative controls
+  "x100001721",   2L,   "control",  "chr2 N2-acetyllysine",  "Afr",
+  "x799",         5L,   "control",  "chr5 Betaine",  "Afr",
+  "x1215",        6L,   "control",  "chr6 N-acetylglucosaminylasparagine",  "Amer",
+  "x278",        16L,   "control",  "chr16 Cysteinylglycine", "Amer",
+  # test regions
+  "x1021",        8L,   "test",     "chr8 5-oxoproline", "Afr",
+  "x100000007",  10L,   "test",     "chr10 Carnitine", "Amer",
+  "x100004046",  13L,   "test",     "chr13 N-acetylcarnosine",  "Afr",
+  "x1224",       16L,   "test",     "chr16 Cys-gly, oxidized",  "Amer",
+  "x100009332",  11L,   "test",     "chr11 Arachidonoylcholine",  "Amer",
+  "x100006370",  11L,   "test",     "chr11 3beta-hydroxy-5-cholestenoate",  "Amer",
+  "x100001208",  12L,   "test",     "chr12 1-methylimidazoleacetate",  "Amer",
+  "x2054",       12L,   "test",     "chr12 Ethylmalonate",  "Afr",
+  "x100006264",  16L,   "test",     "chr16 Propyl 4-hydroxybenzoate sulfate", "Afr",
+  "x100001266",   2L,   "test",     "chr2 N-acetylarginine",    "Afr",
+  "x1114",        5L,   "test",     "chr5 3-aminoisobutyrate",  "Amer",
+  "x192",         8L,   "test",     "chr8 N-acetylputrescine",  "Amer"
+) %>%
+  mutate(combo = paste0(metabolite, "-", ancestry))
+```
+
+
+# data formaating to be suited for plotting
+```{r}
+# subsetting the most significant hit from all the AM results, label the model type
+# summarize it as one dataframe
+obj_names <- ls(pattern = "^am_(null|cv|rv|rv_cv)_adj_x[0-9]+$")
+
+am_long <- c()
+for(i in obj_names){
+  print(i)
+  am_res <- as.data.frame(map(i, ~ as.data.frame(get(.x)))) |>
+    mutate( model = str_match(i, "^am_(null|cv|rv|rv_cv)_adj_")[, 2],
+    metabolite = str_match(i, "_adj_(x[0-9]+)$")[, 2]) |>
+    filter(Score.pval == min(Score.pval)) |>
+    slice(1) |>
+    dplyr::select(snppos, Score.pval, Est.SE, Est, metabolite, model) |>
+  left_join(region_meta, by = "metabolite") |>
+  mutate(model = factor(model,
+                        levels = c("null", "cv", "rv", "rv_cv"),
+                        labels = c("No genotype adjusted", "Common variants adjusted", "Rare variant set adjusted", "Rare + common variants adjusted")))
+  am_long <- rbind(am_long, am_res)
+}
+
+```
+
+# plotting the lead AM variant for all results
+```{r}
+lvl <- c("chr2 N2-acetyllysine", "chr5 Betaine",
+         "chr6 N-acetylglucosaminylasparagine", "chr16 Cysteinylglycine",
+         "chr2 N-acetylarginine", "chr5 3-aminoisobutyrate",
+         "chr8 N-acetylputrescine", "chr8 5-oxoproline",
+         "chr10 Carnitine", "chr11 Arachidonoylcholine",
+         "chr11 3beta-hydroxy-5-cholestenoate", "chr12 1-methylimidazoleacetate",
+         "chr12 Ethylmalonate", "chr13 N-acetylcarnosine",
+         "chr16 Propyl 4-hydroxybenzoate sulfate", "chr16 Cys-gly, oxidized")
+
+pal_model <- c("No genotype adjusted"            = "aquamarine3",
+               "Common variants adjusted"        = "salmon",
+               "Rare variant set adjusted"       = "royalblue2",
+               "Rare + common variants adjusted" = "mediumpurple2")
+
+shp_ancestry <- setNames(c(16, 17, 15, 3),
+                         levels(factor(am_long$ancestry)))
+
+dodge <- position_dodge(width = 0.65)   # one object, used by every geom
+
+am_long |>
+  mutate(pretty = fct_rev(fct_relevel(pretty, lvl)),
+         model  = fct_relevel(model, names(pal_model))) |>
+  ggplot(aes(x = pretty, y = Est, colour = model, shape = ancestry,
+             group = interaction(model, ancestry))) +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "grey60") +
+  geom_linerange(aes(ymin = Est - 1.96 * Est.SE,
+                     ymax = Est + 1.96 * Est.SE),
+                 position = dodge, linewidth = 0.45, alpha = 0.7) +
+  geom_point(position = dodge, size = 1.8, stroke = 0.8, alpha = 0.8) +
+  coord_flip() +
+  # facet_wrap(~ model, nrow = 1) +
+  scale_colour_manual(values = pal_model, drop = FALSE) +
+  scale_shape_manual(values = shp_ancestry, drop = FALSE) +
+  labs(x = NULL, y = "Effect of AM lead variant (95% CI)",
+       colour = "Model", shape = "Ancestry") +
+  guides(colour = guide_legend(order = 1, override.aes = list(shape = 15, size = 3)),
+         shape  = guide_legend(order = 2, override.aes = list(colour = "grey30", size = 2.5))) +
+  theme_bw(base_size = 11) +
+  theme(panel.grid.major.y = element_line(linetype = 3, linewidth = 0.3),
+        panel.grid.minor   = element_blank(),
+        legend.position    = "bottom",
+        legend.box         = "vertical",
+        strip.text         = element_text(size = 9))
+```
+
+
+
